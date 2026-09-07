@@ -21,9 +21,6 @@
 #   - Sort chunks by score descending, return top_n
 
 
-# Reranker disabled — free Gemini API quota insufficient for per-chunk scoring at scale.
-# Set to True to re-enable once quota allows.
-RERANKER_ENABLED = False
 
 import asyncio
 import google.genai as genai

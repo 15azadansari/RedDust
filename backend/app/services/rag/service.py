@@ -18,6 +18,7 @@ from app.services.rag.retriever import retrieve
 from app.services.rag.reranker import rerank
 from app.services.rag.synthesizer import synthesize
 
+RERANKER_ENABLED = False  # Set True when Gemini quota allows per-chunk scoring
 
 async def retrieve_anodiam_knowledge(
     pool: asyncpg.Pool,

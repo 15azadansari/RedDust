@@ -22,8 +22,12 @@
 #   - get_music_recommendation(mood_hint) → Step 16
 #   - retrieve_anodiam_knowledge(query, domain) → Step 17
 
+import logging
+
 import asyncpg
 from google.genai.types import FunctionResponse
+
+logger = logging.getLogger(__name__)
 
 # Import individual handlers — each handler owns one function's logic
 from app.services.functions.user_context import handle_fetch_user_context
@@ -56,32 +60,43 @@ async def dispatch(
         On unknown function name, returns an error FunctionResponse so the session
         doesn't stall waiting for a response that never comes.
     """
-    if function_name == "fetch_user_context":
-        result = await handle_fetch_user_context(
-            pool=pool,
-            user_id=user_id,
-        )
+    try:
+        if function_name == "fetch_user_context":
+            result = await handle_fetch_user_context(
+                pool=pool,
+                user_id=user_id,
+            )
 
-    elif function_name == "get_music_recommendation":
-        result = await handle_get_music_recommendation(
-            args=function_args,
-            user_id=user_id,
-            session_id=session_id,
-            conversation_id=conversation_id,
-            turn_id=turn_id,
-            pool=pool,
-        )
+        elif function_name == "get_music_recommendation":
+            result = await handle_get_music_recommendation(
+                args=function_args,
+                user_id=user_id,
+                session_id=session_id,
+                conversation_id=conversation_id,
+                turn_id=turn_id,
+                pool=pool,
+            )
 
-    elif function_name == "retrieve_anodiam_knowledge":
-        result = await handle_retrieve_anodiam_knowledge(
-            pool=pool,
-            query=function_args["query"],
-            domain=function_args.get("domain"),
-        )
+        elif function_name == "retrieve_anodiam_knowledge":
+            result = await handle_retrieve_anodiam_knowledge(
+                pool=pool,
+                query=function_args["query"],
+                domain=function_args.get("domain"),
+            )
 
-    else:
-        # Unknown function — return an error payload so Gemini can handle gracefully
-        # rather than hanging the session waiting for a response
-        result = {"error": f"Unknown function: {function_name}"}
+        else:
+            # Unknown function — return an error payload so Gemini can handle gracefully
+            # rather than hanging the session waiting for a response
+            result = {"error": f"Unknown function: {function_name}"}
+
+    except Exception as e:
+        # Last-resort safety net — ensures the session NEVER stalls due to an
+        # unhandled exception escaping a handler. Any exception here is a bug
+        # in a handler that should have caught it internally (e.g. missing
+        # try/except in a new handler). Log at exception level for full traceback.
+        logger.exception(
+            "dispatch() unhandled exception for function=%s: %s", function_name, e
+        )
+        result = {"error": f"Function {function_name} failed unexpectedly: {str(e)}"}
 
     return FunctionResponse(name=function_name, response=result)

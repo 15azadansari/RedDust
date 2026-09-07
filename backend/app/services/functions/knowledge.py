@@ -12,9 +12,13 @@
 #   {"answer": str} — Gemini Live receives this as the function result and uses
 #   it to continue generating its audio response to the user
 
+import logging
+
 import asyncpg
 
 from app.services.rag.service import retrieve_anodiam_knowledge
+
+logger = logging.getLogger(__name__)
 
 
 async def handle_retrieve_anodiam_knowledge(
@@ -34,10 +38,13 @@ async def handle_retrieve_anodiam_knowledge(
         Dict with key 'answer' containing the grounded text response.
         Gemini Live receives this dict as the FunctionResponse payload.
     """
-    answer = await retrieve_anodiam_knowledge(
-        pool=pool,
-        query=query,
-        domain=domain,
-    )
-
-    return {"answer": answer}
+    try:
+        answer = await retrieve_anodiam_knowledge(
+            pool=pool,
+            query=query,
+            domain=domain,
+        )
+        return {"answer": answer}
+    except Exception as e:
+        logger.exception("handle_retrieve_anodiam_knowledge failed: %s", e)
+        return {"error": f"Knowledge retrieval failed: {str(e)}"}
