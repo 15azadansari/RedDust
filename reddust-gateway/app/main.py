@@ -55,3 +55,10 @@ async def offer(offer: Offer):
         "sdp": pc.localDescription.sdp,
         "type": pc.localDescription.type,
     }
+
+@app.get("/healthz")
+async def healthz():
+    return {
+        "status": "ok",
+        "service": "reddust-gateway"
+    }
